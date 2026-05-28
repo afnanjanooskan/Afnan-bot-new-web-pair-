@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhatsApp Bot Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0a0d0f;
+    --surface:   #111518;
+    --surface2:  #171c20;
+    --border:    #1e2428;
+    --green:     #25d366;
+    --green-dim: #1a9147;
+    --red:       #e05252;
+    --yellow:    #f5c842;
+    --blue:      #4ea8de;
+    --text:      #e8eaec;
+    --muted:     #5a6370;
+    --font:      'Syne', sans-serif;
+    --mono:      'JetBrains Mono', monospace;
+    --radius:    12px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Noise overlay ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── Header ── */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,13,15,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--green), var(--green-dim));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  .logo-text { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo-sub  { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 1px; }
+
+  .header-right {
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .online-count {
+    font-family: var(--mono); font-size: 12px; color: var(--green);
+    background: rgba(37,211,102,0.08);
+    border: 1px solid rgba(37,211,102,0.2);
+    padding: 5px 10px; border-radius: 20px;
+  }
+
+  /* ── Main layout ── */
+  main {
+    position: relative; z-index: 1;
+    max-width: 1200px; margin: 0 auto;
+    padding: 32px 24px;
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 24px;
+  }
+
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+  }
+
+  /* ── Panel card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  /* ── Connect form ── */
+  .connect-form { padding: 20px; }
+
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block; margin-bottom: 6px;
+    font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+  }
+
+  .field input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: var(--mono); font-size: 14px;
+    outline: none; transition: border 0.2s;
+  }
+
+  .field input:focus { border-color: var(--green); }
+  .field input::placeholder { color: var(--muted); }
+
+  /* ── Buttons ── */
+  .btn {
+    width: 100%; padding: 11px;
+    border: none; border-radius: 8px;
+    font-family: var(--font); font-size: 14px; font-weight: 700;
+    letter-spacing: 0.04em; cursor: pointer;
+    transition: all 0.15s; display: flex;
+    align-items: center; justify-content: center; gap: 8px;
+  }
+
+  .btn-primary {
+    background: var(--green); color: #000;
+  }
+  .btn-primary:hover { background: #1ab355; }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:disabled { background: #1a4d2e; color: var(--muted); cursor: not-allowed; }
+
+  .btn-danger  { background: rgba(224,82,82,0.12); color: var(--red); border: 1px solid rgba(224,82,82,0.25); margin-top: 8px; }
+  .btn-danger:hover  { background: rgba(224,82,82,0.22); }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); margin-top: 8px; }
+  .btn-outline:hover { border-color: var(--muted); }
+
+  /* ── QR section ── */
+  .qr-wrap {
+    padding: 24px 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    min-height: 140px;
+  }
+
+  .qr-placeholder {
+    width: 200px; height: 200px;
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 12px; text-align: center;
+    line-height: 1.6;
+  }
+
+  #qr-img {
+    display: none;
+    width: 200px; height: 200px;
+    border-radius: 10px;
+    border: 3px solid var(--green);
+    box-shadow: 0 0 24px rgba(37,211,102,0.25);
+    animation: pulseQr 2s ease-in-out infinite;
+  }
+
+  @keyframes pulseQr {
+    0%, 100% { box-shadow: 0 0 24px rgba(37,211,102,0.25); }
+    50%       { box-shadow: 0 0 40px rgba(37,211,102,0.45); }
+  }
+
+  .qr-hint { font-size: 12px; color: var(--muted); text-align: center; }
+  .qr-expire { font-family: var(--mono); font-size: 11px; color: var(--yellow); }
+
+  /* ── Status badge ── */
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 20px;
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+  }
+
+  .status-idle        { background: rgba(90,99,112,0.15); color: var(--muted); }
+  .status-idle .dot   { background: var(--muted); }
+
+  .status-connecting        { background: rgba(78,168,222,0.1); color: var(--blue); }
+  .status-connecting .dot   { background: var(--blue); animation: blink 1s infinite; }
+
+  .status-qr        { background: rgba(245,200,66,0.1); color: var(--yellow); }
+  .status-qr .dot   { background: var(--yellow); animation: blink 0.6s infinite; }
+
+  .status-connected        { background: rgba(37,211,102,0.1); color: var(--green); }
+  .status-connected .dot   { background: var(--green); }
+
+  .status-reconnecting        { background: rgba(245,200,66,0.1); color: var(--yellow); }
+  .status-reconnecting .dot   { background: var(--yellow); animation: blink 0.8s infinite; }
+
+  .status-disconnected        { background: rgba(224,82,82,0.1); color: var(--red); }
+  .status-disconnected .dot   { background: var(--red); }
+
+  .status-error        { background: rgba(224,82,82,0.1); color: var(--red); }
+  .status-error .dot   { background: var(--red); }
+
+  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.2; } }
+
+  /* ── Right panel ── */
+  .right-col { display: flex; flex-direction: column; gap: 20px; }
+
+  /* ── Sessions list ── */
+  .sessions-list { padding: 4px 0; max-height: 320px; overflow-y: auto; }
+  .sessions-list::-webkit-scrollbar { width: 4px; }
+  .sessions-list::-webkit-scrollbar-track { background: var(--surface); }
+  .sessions-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .session-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer; transition: background 0.15s;
+  }
+  .session-row:last-child { border-bottom: none; }
+  .session-row:hover { background: rgba(255,255,255,0.02); }
+  .session-row.active { background: rgba(37,211,102,0.04); }
+
+  .session-info { display: flex; flex-direction: column; gap: 3px; }
+  .session-id   { font-weight: 700; font-size: 14px; }
+  .session-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+  .session-actions { display: flex; gap: 6px; }
+
+  .icon-btn {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.15s; font-size: 14px;
+    color: var(--muted);
+  }
+  .icon-btn:hover { color: var(--text); border-color: var(--muted); }
+  .icon-btn.del:hover { color: var(--red); border-color: rgba(224,82,82,0.4); }
+
+  .empty-sessions {
+    padding: 40px 20px; text-align: center;
+    color: var(--muted); font-size: 13px; line-height: 1.7;
+  }
+
+  /* ── Log console ── */
+  .log-console {
+    background: #0c1014;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .log-console .card-header { background: #0c1014; }
+
+  .log-inner {
+    height: 240px; overflow-y: auto;
+    padding: 12px 16px;
+    font-family: var(--mono); font-size: 12px;
+    line-height: 1.7; color: #8a9aaa;
+    scroll-behavior: smooth;
+  }
+
+  .log-inner::-webkit-scrollbar { width: 4px; }
+  .log-inner::-webkit-scrollbar-track { background: #0c1014; }
+  .log-inner::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .log-line { margin-bottom: 2px; }
+  .log-line .ts { color: #2e3d4a; margin-right: 8px; }
+  .log-line.ok  { color: var(--green); }
+  .log-line.err { color: var(--red); }
+  .log-line.warn { color: var(--yellow); }
+  .log-line.info { color: var(--blue); }
+
+  /* ── Loader spinner ── */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(0,0,0,0.3);
+    border-top-color: #000;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Stats row ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    text-align: center;
+  }
+
+  .stat-num { font-size: 28px; font-weight: 800; line-height: 1; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .stat-connected  .stat-num { color: var(--green); }
+  .stat-pending    .stat-num { color: var(--yellow); }
+  .stat-total      .stat-num { color: var(--blue); }
+
+  /* ── Pulse ring animation for connected ── */
+  .pulse-ring {
+    display: inline-block; position: relative;
+  }
+  .pulse-ring::after {
+    content: '';
+    position: absolute; inset: -4px;
+    border-radius: 50%;
+    border: 2px solid var(--green);
+    animation: ringPulse 2s ease-out infinite;
+    opacity: 0;
+  }
+  @keyframes ringPulse {
+    0%   { transform: scale(0.8); opacity: 0.8; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+
+  /* ── Toast ── */
+  .toast-area {
+    position: fixed; top: 72px; right: 20px; z-index: 999;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+
+  .toast {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+    animation: toastIn 0.2s ease;
+    max-width: 280px;
+  }
+
+  .toast.ok  { border-color: rgba(37,211,102,0.4); color: var(--green); }
+  .toast.err { border-color: rgba(224,82,82,0.4); color: var(--red); }
+
+  @keyframes toastIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform:none; } }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    main { padding: 16px 12px; gap: 16px; }
+    header { padding: 12px 16px; }
+    .stats-row { grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .stat-num { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Toast area -->
+<div class="toast-area" id="toast-area"></div>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">📱</div>
+    <div>
+      <div class="logo-text">WhatsApp Panel</div>
+      <div class="logo-sub">Multi-User Bot Manager</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="online-count" id="online-count">● 0 online</div>
+  </div>
+</header>
+
+<main>
+  <!-- Left column: connect + QR -->
+  <div>
+    <!-- Stats -->
+    <div class="stats-row" style="margin-bottom:20px">
+      <div class="stat-box stat-connected">
+        <div class="stat-num" id="stat-connected">0</div>
+        <div class="stat-label">Connected</div>
+      </div>
+      <div class="stat-box stat-pending">
+        <div class="stat-num" id="stat-pending">0</div>
+        <div class="stat-label">Pending</div>
+      </div>
+      <div class="stat-box stat-total">
+        <div class="stat-num" id="stat-total">0</div>
+        <div class="stat-label">Total</div>
+      </div>
+    </div>
+
+    <!-- Connect card -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header">
+        <span>Connect WhatsApp</span>
+        <span id="connect-status-badge" class="status-badge status-idle"><span class="dot"></span>Idle</span>
+      </div>
+
+      <div class="connect-form">
+        <div class="field">
+          <label>User ID</label>
+          <input type="text" id="user-id" placeholder="e.g. alice, john, user1" maxlength="32" autocomplete="off">
+        </div>
+        <button class="btn btn-primary" id="connect-btn" onclick="connectSession()">
+          <div class="spinner" id="connect-spinner"></div>
+          <span id="connect-btn-text">Connect WhatsApp</span>
+        </button>
+        <button class="btn btn-outline" id="disconnect-btn" onclick="disconnectSession()" style="display:none">
+          🔌 Disconnect
+        </button>
+        <button class="btn btn-danger" id="delete-btn" onclick="deleteSession()" style="display:none">
+          🗑️ Delete Session
+        </button>
+      </div>
+    </div>
+
+    <!-- QR card -->
+    <div class="card">
+      <div class="card-header">
+        <span>QR Code</span>
+        <span id="qr-timer" class="qr-expire" style="display:none"></span>
+      </div>
+
+      <div class="qr-wrap">
+        <div class="qr-placeholder" id="qr-placeholder">
+          Enter a User ID<br>and click Connect<br>to generate QR
+        </div>
+        <img id="qr-img" src="" alt="WhatsApp QR Code">
+        <p class="qr-hint" id="qr-hint" style="display:none">
+          Open WhatsApp → Linked Devices → Link a Device
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column -->
+  <div class="right-col">
+    <!-- Active sessions -->
+    <div class="card">
+      <div class="card-header">
+        <span>Active Sessions</span>
+        <button onclick="loadSessions()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px">↺ Refresh</button>
+      </div>
+      <div class="sessions-list" id="sessions-list">
+        <div class="empty-sessions">No sessions yet.<br>Connect your first WhatsApp above.</div>
+      </div>
+    </div>
+
+    <!-- Log console -->
+    <div class="log-console">
+      <div class="card-header">
+        <span>Live Logs</span>
+        <button onclick="clearLogs()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px">Clear</button>
+      </div>
+      <div class="log-inner" id="log-console"></div>
+    </div>
+  </div>
+</main>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  let currentUserId = null;
+  let qrExpireTimer = null;
+  let currentStatus = 'idle';
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function toast(msg, type = 'ok') {
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.textContent = msg;
+    document.getElementById('toast-area').appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  }
+
+  function ts() {
+    return new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function log(msg, type = '') {
+    const el = document.getElementById('log-console');
+    const line = document.createElement('div');
+    line.className = 'log-line' + (type ? ' ' + type : '');
+    line.innerHTML = `<span class="ts">${ts()}</span>${escHtml(msg)}`;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+    // Keep last 200 lines
+    while (el.children.length > 200) el.removeChild(el.firstChild);
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function clearLogs() { document.getElementById('log-console').innerHTML = ''; }
+
+  function setConnectStatus(status, phone) {
+    currentStatus = status;
+    const badge = document.getElementById('connect-status-badge');
+    const labels = {
+      idle: 'Idle', connecting: 'Connecting…', qr: 'Scan QR',
+      connected: 'Connected', reconnecting: 'Reconnecting…',
+      disconnected: 'Disconnected', error: 'Error', restoring: 'Restoring…'
+    };
+    badge.className = `status-badge status-${status}`;
+    badge.innerHTML = `<span class="dot"></span>${labels[status] || status}`;
+
+    const connectBtn = document.getElementById('connect-btn');
+    const disconnectBtn = document.getElementById('disconnect-btn');
+    const deleteBtn = document.getElementById('delete-btn');
+    const spinner = document.getElementById('connect-spinner');
+    const btnText = document.getElementById('connect-btn-text');
+
+    if (status === 'connected') {
+      connectBtn.style.display = 'none';
+      disconnectBtn.style.display = 'flex';
+      deleteBtn.style.display = 'flex';
+      spinner.style.display = 'none';
+    } else if (status === 'connecting' || status === 'reconnecting' || status === 'restoring') {
+      connectBtn.style.display = 'flex';
+      connectBtn.disabled = true;
+      spinner.style.display = 'block';
+      btnText.textContent = status === 'reconnecting' ? 'Reconnecting…' : 'Connecting…';
+      disconnectBtn.style.display = 'none';
+      deleteBtn.style.display = 'flex';
+    } else {
+      connectBtn.style.display = 'flex';
+      connectBtn.disabled = false;
+      spinner.style.display = 'none';
+      btnText.textContent = 'Connect WhatsApp';
+      disconnectBtn.style.display = 'none';
+      if (status === 'disconnected' || status === 'error') {
+        deleteBtn.style.display = 'flex';
+      } else {
+        deleteBtn.style.display = 'none';
+      }
+    }
+  }
+
+  function showQR(dataUrl) {
+    document.getElementById('qr-placeholder').style.display = 'none';
+    const img = document.getElementById('qr-img');
+    img.src = dataUrl;
+    img.style.display = 'block';
+    document.getElementById('qr-hint').style.display = 'block';
+
+    // 60s expiry countdown
+    clearInterval(qrExpireTimer);
+    let secs = 60;
+    const timerEl = document.getElementById('qr-timer');
+    timerEl.style.display = 'inline';
+    timerEl.textContent = `Expires in ${secs}s`;
+    qrExpireTimer = setInterval(() => {
+      secs--;
+      timerEl.textContent = `Expires in ${secs}s`;
+      if (secs <= 0) {
+        clearInterval(qrExpireTimer);
+        timerEl.style.display = 'none';
+        if (currentStatus === 'qr') {
+          resetQR();
+          log('⏱ QR expired — click Connect to get a new one', 'warn');
+        }
+      }
+    }, 1000);
+  }
+
+  function resetQR() {
+    clearInterval(qrExpireTimer);
+    document.getElementById('qr-timer').style.display = 'none';
+    document.getElementById('qr-img').style.display = 'none';
+    document.getElementById('qr-hint').style.display = 'none';
+    document.getElementById('qr-placeholder').style.display = 'flex';
+    document.getElementById('qr-img').src = '';
+  }
+
+  // ── Connect / Disconnect ───────────────────────────────────────────────────
+  function connectSession() {
+    const id = document.getElementById('user-id').value.trim();
+    if (!id) { toast('Enter a User ID first', 'err'); return; }
+    currentUserId = id.replace(/[^a-zA-Z0-9_-]/g, '_');
+    document.getElementById('user-id').value = currentUserId;
+    resetQR();
+    socket.emit('join', currentUserId);
+    socket.emit('start-session', currentUserId);
+    setConnectStatus('connecting');
+    log(`🔄 Connecting session: ${currentUserId}`, 'info');
+    loadSessions();
+  }
+
+  function disconnectSession() {
+    if (!currentUserId) return;
+    socket.emit('disconnect-session', currentUserId);
+    setConnectStatus('disconnected');
+    resetQR();
+    log(`🔌 Disconnected: ${currentUserId}`, 'warn');
+    setTimeout(loadSessions, 1000);
+  }
+
+  function deleteSession() {
+    if (!currentUserId) return;
+    if (!confirm(`Delete session "${currentUserId}"? This will remove all saved credentials.`)) return;
+    socket.emit('delete-session', currentUserId);
+    setConnectStatus('idle');
+    resetQR();
+    currentUserId = null;
+    document.getElementById('user-id').value = '';
+    log('🗑️ Session deleted', 'warn');
+    setTimeout(loadSessions, 1000);
+  }
+
+  // ── Switch to a different session from the list ────────────────────────────
+  function selectSession(userId) {
+    currentUserId = userId;
+    document.getElementById('user-id').value = userId;
+    socket.emit('join', userId);
+    resetQR();
+    log(`📋 Switched to session: ${userId}`, 'info');
+    fetch('/api/sessions').then(r=>r.json()).then(list => {
+      const s = list.find(x => x.userId === userId);
+      if (s) setConnectStatus(s.status, s.phone);
+    });
+  }
+
+  function deleteSessionFromList(userId) {
+    if (!confirm(`Delete session "${userId}"?`)) return;
+    socket.emit('join', userId); // join room first
+    socket.emit('delete-session', userId);
+    if (currentUserId === userId) {
+      setConnectStatus('idle');
+      resetQR();
+      currentUserId = null;
+    }
+    log(`🗑️ Deleted: ${userId}`, 'warn');
+    setTimeout(loadSessions, 800);
+  }
+
+  // ── Load sessions list ─────────────────────────────────────────────────────
+  async function loadSessions() {
+    try {
+      const res = await fetch('/api/sessions');
+      const list = await res.json();
+      renderSessions(list);
+      updateStats(list);
+    } catch (_) {}
+  }
+
+  function renderSessions(list) {
+    const el = document.getElementById('sessions-list');
+    if (!list.length) {
+      el.innerHTML = '<div class="empty-sessions">No sessions yet.<br>Connect your first WhatsApp above.</div>';
+      return;
+    }
+    el.innerHTML = list.map(s => {
+      const isActive = s.userId === currentUserId;
+      const phone = s.phone ? `+${s.phone}` : (s.status === 'connected' ? '…' : '—');
+      return `
+        <div class="session-row ${isActive ? 'active' : ''}" onclick="selectSession('${escHtml(s.userId)}')">
+          <div class="session-info">
+            <div class="session-id">${escHtml(s.userId)}</div>
+            <div class="session-meta">${phone} · ${s.status}</div>
+          </div>
+          <div class="session-actions" onclick="event.stopPropagation()">
+            <div class="icon-btn del" title="Delete" onclick="deleteSessionFromList('${escHtml(s.userId)}')">🗑</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function updateStats(list) {
+    const connected    = list.filter(s => s.status === 'connected').length;
+    const pending      = list.filter(s => ['connecting','qr','reconnecting','restoring'].includes(s.status)).length;
+    const total        = list.length;
+    document.getElementById('stat-connected').textContent = connected;
+    document.getElementById('stat-pending').textContent   = pending;
+    document.getElementById('stat-total').textContent     = total;
+    document.getElementById('online-count').textContent   = `● ${connected} online`;
+  }
+
+  // ── Socket.io events ───────────────────────────────────────────────────────
+  socket.on('connect', () => {
+    log('🌐 Panel connected to server', 'ok');
+    if (currentUserId) socket.emit('join', currentUserId);
+    loadSessions();
+  });
+
+  socket.on('disconnect', () => log('⚠️ Panel lost connection to server', 'err'));
+
+  socket.on('qr', (dataUrl) => {
+    showQR(dataUrl);
+    log('📱 QR code ready — scan with WhatsApp', 'warn');
+    loadSessions();
+  });
+
+  socket.on('status', (data) => {
+    setConnectStatus(data.status, data.phone);
+    if (data.status === 'connected') {
+      resetQR();
+      document.getElementById('qr-placeholder').style.display = 'flex';
+      document.getElementById('qr-placeholder').textContent = `✅ Connected!\n+${data.phone}`;
+      toast(`✅ Connected: ${currentUserId}`, 'ok');
+    } else if (data.status === 'disconnected') {
+      toast(`Disconnected: ${currentUserId}`, 'err');
+    }
+    loadSessions();
+  });
+
+  socket.on('logs', (msg) => {
+    const type = msg.includes('✅') ? 'ok'
+               : msg.includes('❌') || msg.includes('Error') ? 'err'
+               : msg.includes('⚠️') ? 'warn'
+               : 'info';
+    log(msg, type);
+  });
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  document.getElementById('user-id').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') connectSession();
+  });
+
+  loadSessions();
+  setInterval(loadSessions, 8000); // refresh every 8s
+</script>
+</body>
+</html>
