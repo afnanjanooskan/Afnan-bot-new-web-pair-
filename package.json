@@ -1,0 +1,25 @@
+{
+  "name": "whatsapp-bot-panel",
+  "version": "1.0.0",
+  "description": "Multi-user WhatsApp Bot Panel — Baileys + Socket.io",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "dev":   "nodemon index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.18",
+    "axios":        "^1.7.2",
+    "express":      "^4.19.2",
+    "pino":         "^9.0.0",
+    "qrcode":       "^1.5.3",
+    "socket.io":    "^4.7.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
